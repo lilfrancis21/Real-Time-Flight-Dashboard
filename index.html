@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Deck | METAR Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="dashboard-wrapper">
+        <header class="dashboard-header">
+            <h1>Aviation Weather Tracker</h1>
+            <p>Real-Time METAR Observations</p>
+        </header>
+
+        <section class="search-container">
+            <form id="searchForm" class="search-form">
+                <input type="text" id="icaoInput" placeholder="Enter ICAO code (e.g., KLAX)" required maxlength="4" autocomplete="off" autofocus>
+                <button type="submit">Fetch Data</button>
+            </form>
+        </section>
+
+        <div id="error-box" class="alert-box error">
+            <p><strong id="error-text"></strong></p>
+        </div>
+
+        <section id="results-container">
+            <div class="card station-card">
+                <h2 id="station-title">Station: </h2>
+                <span id="obs-time" class="obs-time">Observed: </span>
+            </div>
+
+            <div class="card raw-card">
+                <h3>Raw METAR Data</h3>
+                <code id="raw-metar"></code>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="card metric-card">
+                    <span class="metric-label">Wind</span>
+                    <span id="wind-val" class="metric-value"></span>
+                </div>
+                <div class="card metric-card">
+                    <span class="metric-label">Visibility</span>
+                    <span id="vis-val" class="metric-value"></span>
+                </div>
+                <div class="card metric-card">
+                    <span class="metric-label">Temperature</span>
+                    <span id="temp-val" class="metric-value"></span>
+                </div>
+                <div class="card metric-card">
+                    <span class="metric-label">Altimeter</span>
+                    <span id="alt-val" class="metric-value"></span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.getElementById('searchForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Stop the page from reloading
+            
+            const icao = document.getElementById('icaoInput').value.toUpperCase().trim();
+            
+            // Forces the proxy to fetch brand-new, live data every single time you click the button
+            const targetUrl = encodeURIComponent(`https://aviationweather.gov/api/data/metar?ids=${icao}&format=json&nocache=${new Date().getTime()}`);
+            const url = `https://api.allorigins.win/raw?url=${targetUrl}`;
+            
+            const resultsContainer = document.getElementById('results-container');
+            const errorBox = document.getElementById('error-box');
+            const errorText = document.getElementById('error-text');
+
+            // Hide previous results/errors while loading
+            errorBox.style.display = 'none';
+            resultsContainer.style.display = 'none';
+
+            try {
+                // Fetch data from the API
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data && data.length > 0) {
+                    const metar = data[0];
+                    
+                    // Inject the data into the HTML elements
+                    document.getElementById('station-title').innerText = `Station: ${metar.icaoId || icao}`;
+                    document.getElementById('obs-time').innerText = `Observed: ${metar.receiptTime || 'Unknown'}`;
+                    document.getElementById('raw-metar').innerText = metar.rawOb || 'No raw METAR provided';
+                    
+                    document.getElementById('wind-val').innerText = `${metar.wspd || 0} knots at ${metar.wdir || '0'}°`;
+                    document.getElementById('vis-val').innerText = `${metar.visib || 'Unknown'} SM`;
+                    document.getElementById('temp-val').innerText = `${metar.temp || 'Unknown'}°C`;
+                    
+                    // Convert hPa to standard US inHg (inches of mercury) for pilots
+                    const altimeterInHg = metar.altim ? (metar.altim * 0.02953).toFixed(2) : "Unknown";
+                    document.getElementById('alt-val').innerText = `${altimeterInHg} inHg`;
+
+                    // Show the results box
+                    resultsContainer.style.display = 'block';
+                } else {
+                    // Show error if airport code isn't found
+                    errorText.innerText = `Error: Could not find METAR data for '${icao}'. Check the code and try again.`;
+                    errorBox.style.display = 'block';
+                }
+            } catch (error) {
+                errorText.innerText = "Error: Could not connect to the weather server.";
+                errorBox.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
