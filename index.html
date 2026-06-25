@@ -63,8 +63,7 @@
             const icao = document.getElementById('icaoInput').value.toUpperCase().trim();
             
             // Forces the proxy to fetch brand-new, live data every single time you click the button
-            const targetUrl = encodeURIComponent(`https://aviationweather.gov/api/data/metar?ids=${icao}&format=json&nocache=${new Date().getTime()}`);
-            const url = `https://api.allorigins.win/raw?url=${targetUrl}`;
+            const url = `https://aviationweather.gov/api/data/metar?ids=${icao}&format=json`;
             
             const resultsContainer = document.getElementById('results-container');
             const errorBox = document.getElementById('error-box');
